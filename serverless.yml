@@ -27,6 +27,9 @@ provider:
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
+      Resource: "*"
+    - Effect: Allow
+      Action:
         - s3:*
       Resource:
         - "arn:aws:s3:::giftsondemand/*"
@@ -126,7 +129,4 @@ functions:
 
 plugins:
   - serverless-python-requirements
-
-custom:
-  pythonRequirements:
-    dockerizePip: non-linux
+  
