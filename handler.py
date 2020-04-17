@@ -9,11 +9,22 @@ import requests
 
 
 def render_and_upload_lastname_mug(event, context):
+    def load_file_from_s3(*, bucket, key):
+        s3_client = boto3.client("s3")
+        buffer_file = io.BytesIO()
+        s3_client.download_fileobj(bucket, key, buffer_file)
+        # Why do I have to do this seek operation?
+        # https://stackoverflow.com/a/58006156/1723469
+        buffer_file.seek(0)
+        return buffer_file
+
     def render_mug(event):
         def draw_slogan(slogan_to_write, img):
             draw = ImageDraw.Draw(img)
+            INPUT_BUCKET = "giftsondemand-input"
+            FONT_S3_KEY = "fonts/angelina.ttf"
 
-            font_file = io.BytesIO(event["font"])
+            font_file = load_file_from_s3(bucket=INPUT_BUCKET, key=FONT_S3_KEY)
             font = ImageFont.truetype(font_file, 310)
 
             # Find starting x coordinate to center text
@@ -24,7 +35,8 @@ def render_and_upload_lastname_mug(event, context):
                 xy=(starting_x, 1050),
                 text=slogan_to_write,
                 fill=(88, 89, 91, 255),
-                font=font)
+                font=font,
+            )
             return img
 
         def transform_slogan(original_img):
@@ -57,18 +69,14 @@ def render_and_upload_lastname_mug(event, context):
 
             # Deflection eqn coeffs
             a, b, c = solve_quadratic_coeffs(
-                point_1=(0, 0),
-                point_2=(mid_x, mid_y),
-                point_3=(original_w, 0)
+                point_1=(0, 0), point_2=(mid_x, mid_y), point_3=(original_w, 0)
             )
             new_h = int(ceil(plot_deflected_point(mid_x, a, b, original_h)))
             new_img = Image.new("RGBA", (original_w, new_h), (255, 255, 255, 0))
 
             # Alpha (opacity) eqn found by fitting 3 points
             d, e, f = solve_quadratic_coeffs(
-                point_1=(0, 0.8),
-                point_2=(original_w / 4, 0.9),
-                point_3=(mid_x, 0.95)
+                point_1=(0, 0.8), point_2=(original_w / 4, 0.9), point_3=(mid_x, 0.95)
             )
 
             for x in range(original_w):  # cols
@@ -76,12 +84,23 @@ def render_and_upload_lastname_mug(event, context):
                     alpha_value = int(ceil(plot_alpha_point(x, d, e, f) * 255))
                 else:
                     reflected_x = 2 * mid_x - x
-                    alpha_value = int(ceil(plot_alpha_point(reflected_x, d, e, f) * 255))
+                    alpha_value = int(
+                        ceil(plot_alpha_point(reflected_x, d, e, f) * 255)
+                    )
                 for y in range(original_h):  # rows
                     current_pixel = original_pixel[x, y]
-                    if current_pixel != (255, 255, 255, 0) and current_pixel != (0, 0, 0, 0):  # noqa:E501
-                        new_pixel = (current_pixel[0], current_pixel[1],
-                                     current_pixel[2], alpha_value)
+                    if current_pixel != (255, 255, 255, 0) and current_pixel != (
+                        0,
+                        0,
+                        0,
+                        0,
+                    ):  # noqa:E501
+                        new_pixel = (
+                            current_pixel[0],
+                            current_pixel[1],
+                            current_pixel[2],
+                            alpha_value,
+                        )
                         new_pixel_y = plot_deflected_point(x, a, b, y)
                         try:
                             new_img.putpixel((x, new_pixel_y), new_pixel)
@@ -94,8 +113,13 @@ def render_and_upload_lastname_mug(event, context):
         slogan = event["slogan"]
         imgs_bytes = event["template_imgs"]
 
+        INPUT_BUCKET = "giftsondemand-input"
+
         slogan_to_write = slogan["slogan"]
-        slogan_img_template_file = io.BytesIO(imgs_bytes["slogan_template"])
+        SLOGAN_TEMPLATE_IMG_KEY = "imgs/mug_template_feminine_its_a_surname_thing.png"
+        slogan_img_template_file = load_file_from_s3(
+            bucket=INPUT_BUCKET, key=SLOGAN_TEMPLATE_IMG_KEY
+        )
         template_img = Image.open(slogan_img_template_file)
 
         slogan_img = draw_slogan(slogan_to_write, template_img)
@@ -107,7 +131,7 @@ def render_and_upload_lastname_mug(event, context):
         slogan_resize_factor = FINAL_W / STARTING_W
         size = (
             int(ceil(STARTING_W * slogan_resize_factor)),
-            int(ceil(STARTING_H * slogan_resize_factor))
+            int(ceil(STARTING_H * slogan_resize_factor)),
         )
         transformed_img = transformed_img.resize(size, Image.ANTIALIAS)
 
@@ -151,7 +175,7 @@ def render_and_upload_lastname_mug(event, context):
             "left_mug": slogan["left_mug"],
             "right_mug": slogan["right_mug"],
             "microwave_mug": slogan["microwave_mug"],
-            "size_example": slogan["size_example"]
+            "size_example": slogan["size_example"],
         }
 
         s3 = boto3.client("s3")
@@ -169,7 +193,7 @@ def render_and_upload_lastname_mug(event, context):
                 Key=s3_img_path,
                 Body=in_mem_file,
                 ContentType="image/png",
-                ACL="public-read"
+                ACL="public-read",
             )
             # Example finished AWS S3 URL
             # https://giftsondemand.s3.amazonaws.com/2020-01-07/10_r.png
@@ -187,7 +211,7 @@ def render_and_upload_lastname_mug(event, context):
         "left_mug_url": uploaded_slogan["left_mug_url"],
         "right_mug_url": uploaded_slogan["right_mug_url"],
         "microwave_mug_url": uploaded_slogan["microwave_mug_url"],
-        "size_example_url": uploaded_slogan["size_example_url"]
+        "size_example_url": uploaded_slogan["size_example_url"],
     }
     return json.dumps({"amazon_ready_slogan": amazon_ready_slogan})
 
@@ -206,7 +230,7 @@ def process_surname_slogans(event, context):
         "left_mug": "https://giftsondemand-input.s3.amazonaws.com/imgs/mug_left_large.png",
         "right_mug": "https://giftsondemand-input.s3.amazonaws.com/imgs/mug_right_large.png",
         "microwave_mug": "https://giftsondemand-input.s3.amazonaws.com/imgs/microwave_mug.png",
-        "size_example": "https://giftsondemand-input.s3.amazonaws.com/imgs/size_example.png"
+        "size_example": "https://giftsondemand-input.s3.amazonaws.com/imgs/size_example.png",
     }
 
     template_imgs_with_binaries = {}
@@ -221,14 +245,14 @@ def process_surname_slogans(event, context):
             "slogan": slogan,
             "font": font_bytes,
             "template_imgs": template_imgs_with_binaries,
-            "BUCKET": "giftsondemand"
+            "BUCKET": "giftsondemand",
         }
         invoke_response = client.invoke(
             FunctionName="mugup-dev-render-and-upload-lastname-mug",
             InvocationType="RequestResponse",
-            Payload=json.dumps(str(event_payload))
+            Payload=json.dumps(str(event_payload)),
         )
-        string_response = invoke_response["Payload"].read().decode('utf-8')
+        string_response = invoke_response["Payload"].read().decode("utf-8")
         parsed_response = json.loads(string_response)
         amazon_ready_slogans.append(parsed_response)
 
@@ -237,13 +261,20 @@ def process_surname_slogans(event, context):
 
 if __name__ == "__main__":
     test_slogans = [
-        {'slogan': 'Abcdefghijklmno', 'niche': 'Aardvark', 'item_name': 'Novelty Mugs For Aardvark Animal Lovers - Coffee Cup Ideas For Pet Owners',
-            'keywords': 'Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends'},
-        {'slogan': 'Jefferson', 'niche': 'Abyssinian', 'item_name': 'Novelty Mugs For Abyssinian Animal Lovers - Coffee Cup Ideas For Pet Owners',
-            'keywords': 'Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends'}
+        {
+            "slogan": "Abcdefghijklmno",
+            "niche": "Aardvark",
+            "item_name": "Novelty Mugs For Aardvark Animal Lovers - Coffee Cup Ideas For Pet Owners",
+            "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
+        },
+        {
+            "slogan": "Jefferson",
+            "niche": "Abyssinian",
+            "item_name": "Novelty Mugs For Abyssinian Animal Lovers - Coffee Cup Ideas For Pet Owners",
+            "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
+        },
     ]
 
-    data = {
-        "slogans": test_slogans}
+    data = {"slogans": test_slogans}
     context = ""
     process_surname_slogans(data, context)
