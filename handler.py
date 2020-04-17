@@ -5,7 +5,6 @@ import json
 from math import ceil
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
-import requests
 
 
 def render_and_upload_lastname_mug(event, context):
@@ -234,31 +233,11 @@ def process_surname_slogans(event, context):
     client = boto3.client("lambda")
 
     slogans = event["slogans"]
-    # load template image and font
-    FONT_URL = "https://giftsondemand-input.s3.amazonaws.com/fonts/angelina.ttf"
-    font_response = requests.get(FONT_URL)
-    font_bytes = font_response.content
-
-    TEMPLATE_IMG_URLS = {
-        "slogan_template": "https://giftsondemand-input.s3.amazonaws.com/imgs/mug_template_feminine_its_a_surname_thing.png",
-        "left_mug": "https://giftsondemand-input.s3.amazonaws.com/imgs/mug_left_large.png",
-        "right_mug": "https://giftsondemand-input.s3.amazonaws.com/imgs/mug_right_large.png",
-        "microwave_mug": "https://giftsondemand-input.s3.amazonaws.com/imgs/microwave_mug.png",
-        "size_example": "https://giftsondemand-input.s3.amazonaws.com/imgs/size_example.png",
-    }
-
-    template_imgs_with_binaries = {}
-    for img_name, img_url in TEMPLATE_IMG_URLS.items():
-        resp = requests.get(img_url)
-        img_file_bytes = resp.content
-        template_imgs_with_binaries[img_name] = img_file_bytes
 
     amazon_ready_slogans = []  # list of dicts including mug urls
     for slogan in slogans[:1]:
         event_payload = {
             "slogan": slogan,
-            "font": font_bytes,
-            "template_imgs": template_imgs_with_binaries,
             "BUCKET": "giftsondemand",
         }
         invoke_response = client.invoke(
