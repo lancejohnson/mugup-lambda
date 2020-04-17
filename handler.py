@@ -19,6 +19,10 @@ def render_and_upload_lastname_mug(event, context):
         return buffer_file
 
     def render_mug(event):
+        def check_first_char_is_vowel(lastname):
+            vowels = ["a", "e", "i", "o", "u"]
+            return lastname[0].lower() in vowels
+
         def draw_lastname(lastname_to_write, img):
             draw = ImageDraw.Draw(img)
             INPUT_BUCKET = "giftsondemand-input"
@@ -110,21 +114,25 @@ def render_and_upload_lastname_mug(event, context):
 
             return new_img
 
+        INPUT_BUCKET = event["input_bucket"]
         lastname = event["lastname"]
-        template_img_keys = {
-            "lastname_template": "imgs/mug_template_feminine_its_a_surname_thing.png",
+
+        TEMPLATE_IMG_KEYS = {
+            "lastname_template_consonant": "imgs/mug_template_feminine_its_a_surname_thing.png",
+            "lastname_template_vowel": "imgs/mug_template_feminine_its_a_surname_thing_vowel.png",
             "left_mug": "imgs/mug_left_large.png",
             "right_mug": "imgs/mug_right_large.png",
             "microwave_mug": "imgs/microwave_mug.png",
             "size_example": "imgs/size_example.png",
         }
 
-        INPUT_BUCKET = event["input_bucket"]
-
         lastname_to_write = lastname["lastname"]
-        lastname_TEMPLATE_IMG_KEY = template_img_keys["lastname_template"]
+        if check_first_char_is_vowel(lastname_to_write):
+            LASTNAME_TEMPLATE_IMG_KEY = TEMPLATE_IMG_KEYS["lastname_template_vowel"]
+        else:
+            LASTNAME_TEMPLATE_IMG_KEY = TEMPLATE_IMG_KEYS["lastname_template_consonant"]
         lastname_img_template_file = load_file_from_s3(
-            bucket=INPUT_BUCKET, key=lastname_TEMPLATE_IMG_KEY
+            bucket=INPUT_BUCKET, key=LASTNAME_TEMPLATE_IMG_KEY
         )
         template_img = Image.open(lastname_img_template_file)
 
@@ -143,7 +151,7 @@ def render_and_upload_lastname_mug(event, context):
 
         # paste onto left_mug_img
         left_mug_file = load_file_from_s3(
-            bucket=INPUT_BUCKET, key=template_img_keys["left_mug"]
+            bucket=INPUT_BUCKET, key=TEMPLATE_IMG_KEYS["left_mug"]
         )
         left_mug_img = Image.open(left_mug_file)
         left_mug_img.paste(transformed_img, (600, 180), transformed_img)
@@ -151,7 +159,7 @@ def render_and_upload_lastname_mug(event, context):
 
         # paste onto right_mug_img
         right_mug_file = load_file_from_s3(
-            bucket=INPUT_BUCKET, key=template_img_keys["right_mug"]
+            bucket=INPUT_BUCKET, key=TEMPLATE_IMG_KEYS["right_mug"]
         )
         right_mug_img = Image.open(right_mug_file)
         right_mug_img.paste(transformed_img, (-20, 180), transformed_img)
@@ -166,7 +174,7 @@ def render_and_upload_lastname_mug(event, context):
 
         # paste onto microwave_mug_img
         microwave_mug_file = load_file_from_s3(
-            bucket=INPUT_BUCKET, key=template_img_keys["microwave_mug"]
+            bucket=INPUT_BUCKET, key=TEMPLATE_IMG_KEYS["microwave_mug"]
         )
         microwave_mug_img = Image.open(microwave_mug_file)
         microwave_mug_img.paste(small_mug_img, (440, 45), small_mug_img)
@@ -174,7 +182,7 @@ def render_and_upload_lastname_mug(event, context):
 
         # paste onto size_example_img
         size_example_file = load_file_from_s3(
-            bucket=INPUT_BUCKET, key=template_img_keys["size_example"]
+            bucket=INPUT_BUCKET, key=TEMPLATE_IMG_KEYS["size_example"]
         )
         size_example_img = Image.open(size_example_file)
         size_example_img.paste(small_mug_img, (440, 45), small_mug_img)
@@ -249,9 +257,7 @@ def process_lastnames(event, context):
         )
         # Add two because we're not counting headers or 0.
         lastname["row"] = idx + 2
-        lastname[
-            "name"
-        ] = f"{lastname['niche']}_{lastname['row']}_{today}"
+        lastname["name"] = f"{lastname['niche']}_{lastname['row']}_{today}"
         return lastname
 
     # Expect event to be something like:
@@ -284,7 +290,7 @@ def process_lastnames(event, context):
         event_payload = {
             "lastname": lastname,
             "input_bucket": INPUT_BUCKET,
-            "output_bucket": event["output_bucket"]
+            "output_bucket": event["output_bucket"],
         }
         invoke_response = lambda_client.invoke(
             FunctionName="mugup-dev-render-and-upload-lastname-mug",
