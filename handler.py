@@ -19,7 +19,7 @@ def render_and_upload_lastname_mug(event, context):
         return buffer_file
 
     def render_mug(event):
-        def draw_slogan(slogan_to_write, img):
+        def draw_lastname(lastname_to_write, img):
             draw = ImageDraw.Draw(img)
             INPUT_BUCKET = "giftsondemand-input"
             FONT_S3_KEY = "fonts/angelina.ttf"
@@ -28,18 +28,18 @@ def render_and_upload_lastname_mug(event, context):
             font = ImageFont.truetype(font_file, 310)
 
             # Find starting x coordinate to center text
-            text_width, text_height = draw.textsize(slogan_to_write, font)
+            text_width, text_height = draw.textsize(lastname_to_write, font)
             img_width, img_height = img.size
             starting_x = (img_width - text_width) / 2
             draw.text(
                 xy=(starting_x, 1050),
-                text=slogan_to_write,
+                text=lastname_to_write,
                 fill=(88, 89, 91, 255),
                 font=font,
             )
             return img
 
-        def transform_slogan(original_img):
+        def transform_lastname(original_img):
             def solve_quadratic_coeffs(point_1, point_2, point_3):
                 points = np.array([point_1, point_2, point_3])
                 x = points[:, 0]
@@ -110,34 +110,34 @@ def render_and_upload_lastname_mug(event, context):
 
             return new_img
 
-        slogan = event["slogan"]
+        lastname = event["lastname"]
         template_img_keys = {
-            "slogan_template": "imgs/mug_template_feminine_its_a_surname_thing.png",
+            "lastname_template": "imgs/mug_template_feminine_its_a_surname_thing.png",
             "left_mug": "imgs/mug_left_large.png",
             "right_mug": "imgs/mug_right_large.png",
             "microwave_mug": "imgs/microwave_mug.png",
             "size_example": "imgs/size_example.png",
         }
 
-        INPUT_BUCKET = "giftsondemand-input"
+        INPUT_BUCKET = event["input_bucket"]
 
-        slogan_to_write = slogan["slogan"]
-        SLOGAN_TEMPLATE_IMG_KEY = template_img_keys["slogan_template"]
-        slogan_img_template_file = load_file_from_s3(
-            bucket=INPUT_BUCKET, key=SLOGAN_TEMPLATE_IMG_KEY
+        lastname_to_write = lastname["lastname"]
+        lastname_TEMPLATE_IMG_KEY = template_img_keys["lastname_template"]
+        lastname_img_template_file = load_file_from_s3(
+            bucket=INPUT_BUCKET, key=lastname_TEMPLATE_IMG_KEY
         )
-        template_img = Image.open(slogan_img_template_file)
+        template_img = Image.open(lastname_img_template_file)
 
-        slogan_img = draw_slogan(slogan_to_write, template_img)
-        transformed_img = transform_slogan(slogan_img)
+        lastname_img = draw_lastname(lastname_to_write, template_img)
+        transformed_img = transform_lastname(lastname_img)
 
         # Calculate the new size starting with final size.
         STARTING_W, STARTING_H = template_img.size
         FINAL_W = 1372
-        slogan_resize_factor = FINAL_W / STARTING_W
+        lastname_resize_factor = FINAL_W / STARTING_W
         size = (
-            int(ceil(STARTING_W * slogan_resize_factor)),
-            int(ceil(STARTING_H * slogan_resize_factor)),
+            int(ceil(STARTING_W * lastname_resize_factor)),
+            int(ceil(STARTING_H * lastname_resize_factor)),
         )
         transformed_img = transformed_img.resize(size, Image.ANTIALIAS)
 
@@ -147,7 +147,7 @@ def render_and_upload_lastname_mug(event, context):
         )
         left_mug_img = Image.open(left_mug_file)
         left_mug_img.paste(transformed_img, (600, 180), transformed_img)
-        slogan["left_mug"] = left_mug_img
+        lastname["left_mug"] = left_mug_img
 
         # paste onto right_mug_img
         right_mug_file = load_file_from_s3(
@@ -155,7 +155,7 @@ def render_and_upload_lastname_mug(event, context):
         )
         right_mug_img = Image.open(right_mug_file)
         right_mug_img.paste(transformed_img, (-20, 180), transformed_img)
-        slogan["right_mug"] = right_mug_img
+        lastname["right_mug"] = right_mug_img
 
         # resize left_mug_image
         mug_resize = 0.5
@@ -170,7 +170,7 @@ def render_and_upload_lastname_mug(event, context):
         )
         microwave_mug_img = Image.open(microwave_mug_file)
         microwave_mug_img.paste(small_mug_img, (440, 45), small_mug_img)
-        slogan["microwave_mug"] = microwave_mug_img
+        lastname["microwave_mug"] = microwave_mug_img
 
         # paste onto size_example_img
         size_example_file = load_file_from_s3(
@@ -178,27 +178,27 @@ def render_and_upload_lastname_mug(event, context):
         )
         size_example_img = Image.open(size_example_file)
         size_example_img.paste(small_mug_img, (440, 45), small_mug_img)
-        slogan["size_example"] = size_example_img
-        slogan_with_renders = slogan
+        lastname["size_example"] = size_example_img
+        lastname_with_renders = lastname
 
-        return slogan_with_renders
+        return lastname_with_renders
 
-    def upload_mug_to_s3(slogan):
+    def upload_mug_to_s3(lastname):
         today_str = str(date.today())
         images_to_upload_names = {
-            "left_mug": slogan["left_mug"],
-            "right_mug": slogan["right_mug"],
-            "microwave_mug": slogan["microwave_mug"],
-            "size_example": slogan["size_example"],
+            "left_mug": lastname["left_mug"],
+            "right_mug": lastname["right_mug"],
+            "microwave_mug": lastname["microwave_mug"],
+            "size_example": lastname["size_example"],
         }
 
         s3 = boto3.client("s3")
 
-        BUCKET = event["BUCKET"]
+        BUCKET = event["output_bucket"]
 
         for img_name, pil_img in images_to_upload_names.items():
             in_mem_file = io.BytesIO()
-            s3_img_path = f"{today_str}/{slogan['slogan']}_its_a_surname_thing_feminine_{img_name}.png"
+            s3_img_path = f"{today_str}/{lastname['name']}_{img_name}.png"
             pil_img.save(in_mem_file, format="PNG")
             in_mem_file.seek(0)
 
@@ -212,28 +212,51 @@ def render_and_upload_lastname_mug(event, context):
             # Example finished AWS S3 URL
             # https://giftsondemand.s3.amazonaws.com/2020-01-07/10_r.png
             aws_url = f"https://{BUCKET}.s3.amazonaws.com/{s3_img_path}"
-            slogan[f"{img_name}_url"] = aws_url
-            slogan_with_mug_urls = slogan
+            lastname[f"{img_name}_url"] = aws_url
+            lastname_with_mug_urls = lastname
 
-        return slogan_with_mug_urls
+        return lastname_with_mug_urls
 
-    rendered_slogan = render_mug(event)
-    uploaded_slogan = upload_mug_to_s3(rendered_slogan)
-    amazon_ready_slogan = {
-        "item_name": uploaded_slogan["item_name"],
-        "keywords": uploaded_slogan["keywords"],
-        "left_mug_url": uploaded_slogan["left_mug_url"],
-        "right_mug_url": uploaded_slogan["right_mug_url"],
-        "microwave_mug_url": uploaded_slogan["microwave_mug_url"],
-        "size_example_url": uploaded_slogan["size_example_url"],
+    rendered_lastname = render_mug(event)
+    uploaded_lastname = upload_mug_to_s3(rendered_lastname)
+    amazon_ready_lastname = {
+        "item_name": uploaded_lastname["item_name"],
+        "keywords": uploaded_lastname["keywords"],
+        "left_mug_url": uploaded_lastname["left_mug_url"],
+        "right_mug_url": uploaded_lastname["right_mug_url"],
+        "microwave_mug_url": uploaded_lastname["microwave_mug_url"],
+        "size_example_url": uploaded_lastname["size_example_url"],
     }
-    return json.dumps({"amazon_ready_slogan": amazon_ready_slogan})
+    return json.dumps({"amazon_ready_lastname": amazon_ready_lastname})
 
 
-def process_surname_slogans(event, context):
+def process_surname_lastnames(event, context):
+    def clean_whitespace(string):
+        string_split = string.split()
+        return " ".join(string_split)
+
+    def validate_lastname(lastname):
+        char_len = len(lastname) < 16
+        not_blank = lastname != ""
+        passed_both_tests = char_len and not_blank
+        return passed_both_tests
+
+    def format_lastname(idx, lastname):
+        today = date.today().strftime("%Y%m%d")
+        lastname["lastname"] = clean_whitespace(lastname["lastname"])
+        lastname["niche"] = (
+            clean_whitespace(lastname["niche"]).replace(" ", "-").lower()
+        )
+        # Add two because we're not counting headers or 0.
+        lastname["row"] = idx + 2
+        lastname[
+            "name"
+        ] = f"{lastname['niche']}_{lastname['row']}_{today}"
+        return lastname
+
     # Expect event to be something like:
     # {
-    #     "slogans_csv_key": "input_csv/input.csv",
+    #     "lastnames_csv_key": "input_csv/input.csv",
     #     "input_bucket": "giftsondemand-input",
     #     "output_bucket": "giftsondemand",
     # }
@@ -241,22 +264,27 @@ def process_surname_slogans(event, context):
     lambda_client = boto3.client("lambda")
     s3_client = boto3.client("s3")
     INPUT_BUCKET = event["input_bucket"]
-    SLOGANS_CSV_KEY = event["slogans_csv_key"]
+    LASTNAMES_CSV_KEY = event["lastnames_csv_key"]
 
     buffer_file = io.BytesIO()
-    s3_client.download_fileobj(INPUT_BUCKET, SLOGANS_CSV_KEY, buffer_file)
+    s3_client.download_fileobj(INPUT_BUCKET, LASTNAMES_CSV_KEY, buffer_file)
     # Quest: Why do I have to do this seek operation?
     # https://stackoverflow.com/a/58006156/1723469
     buffer_file.seek(0)
     text_wrapper = io.TextIOWrapper(buffer_file)
     reader = csv.DictReader(text_wrapper)
-    slogans = [row for row in reader]
+    lastnames = [
+        format_lastname(idx, lastname)
+        for idx, lastname in enumerate(reader)
+        if validate_lastname(lastname)
+    ]
 
-    amazon_ready_slogans = []  # list of dicts including mug urls
-    for slogan in slogans[:1]:
+    amazon_ready_lastnames = []  # list of dicts including mug urls
+    for lastname in lastnames[:1]:
         event_payload = {
-            "slogan": slogan,
-            "BUCKET": event["output_bucket"],
+            "lastname": lastname,
+            "input_bucket": INPUT_BUCKET,
+            "output_bucket": event["output_bucket"]
         }
         invoke_response = lambda_client.invoke(
             FunctionName="mugup-dev-render-and-upload-lastname-mug",
@@ -265,27 +293,27 @@ def process_surname_slogans(event, context):
         )
         string_response = invoke_response["Payload"].read().decode("utf-8")
         parsed_response = json.loads(string_response)
-        amazon_ready_slogans.append(parsed_response)
+        amazon_ready_lastnames.append(parsed_response)
 
-    return json.dumps(amazon_ready_slogans)
+    return json.dumps(amazon_ready_lastnames)
 
 
 if __name__ == "__main__":
-    test_slogans = [
+    test_lastnames = [
         {
-            "slogan": "Abcdefghijklmno",
+            "lastname": "Abcdefghijklmno",
             "niche": "Aardvark",
             "item_name": "Novelty Mugs For Aardvark Animal Lovers - Coffee Cup Ideas For Pet Owners",
             "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
         },
         {
-            "slogan": "Jefferson",
+            "lastname": "Jefferson",
             "niche": "Abyssinian",
             "item_name": "Novelty Mugs For Abyssinian Animal Lovers - Coffee Cup Ideas For Pet Owners",
             "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
         },
     ]
 
-    data = {"slogans": test_slogans}
+    data = {"lastnames": test_lastnames}
     context = ""
-    process_surname_slogans(data, context)
+    process_surname_lastnames(data, context)
