@@ -111,12 +111,18 @@ def render_and_upload_lastname_mug(event, context):
             return new_img
 
         slogan = event["slogan"]
-        imgs_bytes = event["template_imgs"]
+        template_img_keys = {
+            "slogan_template": "imgs/mug_template_feminine_its_a_surname_thing.png",
+            "left_mug": "imgs/mug_left_large.png",
+            "right_mug": "imgs/mug_right_large.png",
+            "microwave_mug": "imgs/microwave_mug.png",
+            "size_example": "imgs/size_example.png",
+        }
 
         INPUT_BUCKET = "giftsondemand-input"
 
         slogan_to_write = slogan["slogan"]
-        SLOGAN_TEMPLATE_IMG_KEY = "imgs/mug_template_feminine_its_a_surname_thing.png"
+        SLOGAN_TEMPLATE_IMG_KEY = template_img_keys["slogan_template"]
         slogan_img_template_file = load_file_from_s3(
             bucket=INPUT_BUCKET, key=SLOGAN_TEMPLATE_IMG_KEY
         )
@@ -136,13 +142,17 @@ def render_and_upload_lastname_mug(event, context):
         transformed_img = transformed_img.resize(size, Image.ANTIALIAS)
 
         # paste onto left_mug_img
-        left_mug_file = io.BytesIO(imgs_bytes["left_mug"])
+        left_mug_file = load_file_from_s3(
+            bucket=INPUT_BUCKET, key=template_img_keys["left_mug"]
+        )
         left_mug_img = Image.open(left_mug_file)
         left_mug_img.paste(transformed_img, (600, 180), transformed_img)
         slogan["left_mug"] = left_mug_img
 
         # paste onto right_mug_img
-        right_mug_file = io.BytesIO(imgs_bytes["right_mug"])
+        right_mug_file = load_file_from_s3(
+            bucket=INPUT_BUCKET, key=template_img_keys["right_mug"]
+        )
         right_mug_img = Image.open(right_mug_file)
         right_mug_img.paste(transformed_img, (-20, 180), transformed_img)
         slogan["right_mug"] = right_mug_img
@@ -155,13 +165,17 @@ def render_and_upload_lastname_mug(event, context):
         small_mug_img = left_mug_img.copy().resize((new_mug_size), Image.ANTIALIAS)
 
         # paste onto microwave_mug_img
-        microwave_mug_file = io.BytesIO(imgs_bytes["microwave_mug"])
+        microwave_mug_file = load_file_from_s3(
+            bucket=INPUT_BUCKET, key=template_img_keys["microwave_mug"]
+        )
         microwave_mug_img = Image.open(microwave_mug_file)
         microwave_mug_img.paste(small_mug_img, (440, 45), small_mug_img)
         slogan["microwave_mug"] = microwave_mug_img
 
         # paste onto size_example_img
-        size_example_file = io.BytesIO(imgs_bytes["size_example"])
+        size_example_file = load_file_from_s3(
+            bucket=INPUT_BUCKET, key=template_img_keys["size_example"]
+        )
         size_example_img = Image.open(size_example_file)
         size_example_img.paste(small_mug_img, (440, 45), small_mug_img)
         slogan["size_example"] = size_example_img
