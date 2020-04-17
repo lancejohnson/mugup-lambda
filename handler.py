@@ -243,7 +243,7 @@ def process_surname_slogans(event, context):
         invoke_response = client.invoke(
             FunctionName="mugup-dev-render-and-upload-lastname-mug",
             InvocationType="RequestResponse",
-            Payload=json.dumps(str(event_payload)),
+            Payload=json.dumps(event_payload),
         )
         string_response = invoke_response["Payload"].read().decode("utf-8")
         parsed_response = json.loads(string_response)
