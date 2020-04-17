@@ -1,3 +1,4 @@
+import csv
 import boto3
 from datetime import date
 import io
@@ -230,17 +231,34 @@ def render_and_upload_lastname_mug(event, context):
 
 
 def process_surname_slogans(event, context):
-    client = boto3.client("lambda")
+    # Expect event to be something like:
+    # {
+    #     "slogans_csv_key": "input_csv/input.csv",
+    #     "input_bucket": "giftsondemand-input",
+    #     "output_bucket": "giftsondemand",
+    # }
 
-    slogans = event["slogans"]
+    lambda_client = boto3.client("lambda")
+    s3_client = boto3.client("s3")
+    INPUT_BUCKET = event["input_bucket"]
+    SLOGANS_CSV_KEY = event["slogans_csv_key"]
+
+    buffer_file = io.BytesIO()
+    s3_client.download_fileobj(INPUT_BUCKET, SLOGANS_CSV_KEY, buffer_file)
+    # Quest: Why do I have to do this seek operation?
+    # https://stackoverflow.com/a/58006156/1723469
+    buffer_file.seek(0)
+    text_wrapper = io.TextIOWrapper(buffer_file)
+    reader = csv.DictReader(text_wrapper)
+    slogans = [row for row in reader]
 
     amazon_ready_slogans = []  # list of dicts including mug urls
     for slogan in slogans[:1]:
         event_payload = {
             "slogan": slogan,
-            "BUCKET": "giftsondemand",
+            "BUCKET": event["output_bucket"],
         }
-        invoke_response = client.invoke(
+        invoke_response = lambda_client.invoke(
             FunctionName="mugup-dev-render-and-upload-lastname-mug",
             InvocationType="RequestResponse",
             Payload=json.dumps(event_payload),
