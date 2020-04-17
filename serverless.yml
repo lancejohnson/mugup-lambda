@@ -22,7 +22,15 @@ org: lancejohnson
 
 provider:
   name: aws
-  runtime: python3.8
+  runtime: python3.7
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - s3:*
+      Resource:
+        - "arn:aws:s3:::giftsondemand/*"
+        - "arn:aws:s3:::giftsondemand-input/*"
 
 # you can overwrite defaults here
 #  stage: dev
@@ -58,8 +66,12 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-  hello:
-    handler: handler.hello
+  process-surname-slogans:
+    handler: handler.process_surname_slogans
+    package: {}
+  render-and-upload-lastname-mug:
+    handler: handler.render_and_upload_lastname_mug
+    package: {}
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events
 #    Check the event documentation for details
@@ -111,3 +123,10 @@ functions:
 #     NewOutput:
 #       Description: "Description for the output"
 #       Value: "Some output value"
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
