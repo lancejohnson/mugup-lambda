@@ -230,7 +230,7 @@ def render_and_upload_lastname_mug(event, context):
     return json.dumps({"amazon_ready_lastname": amazon_ready_lastname})
 
 
-def process_surname_lastnames(event, context):
+def process_lastnames(event, context):
     def clean_whitespace(string):
         string_split = string.split()
         return " ".join(string_split)
@@ -316,4 +316,4 @@ if __name__ == "__main__":
 
     data = {"lastnames": test_lastnames}
     context = ""
-    process_surname_lastnames(data, context)
+    process_lastnames(data, context)

@@ -70,8 +70,8 @@ provider:
 #    - exclude-me-dir/**
 
 functions:
-  process-surname-slogans:
-    handler: handler.process_surname_slogans
+  process-lastnames:
+    handler: handler.process_lastnames
     package: {}
   render-and-upload-lastname-mug:
     handler: handler.render_and_upload_lastname_mug
