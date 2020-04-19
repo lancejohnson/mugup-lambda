@@ -6,9 +6,12 @@ import json
 from math import ceil
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
+from profiler import profile
 
 
 def render_and_upload_lastname_mug(event, context):
+    print("render_and_upload started...")
+
     def load_file_from_s3(*, bucket, key):
         s3_client = boto3.client("s3")
         buffer_file = io.BytesIO()
@@ -238,7 +241,10 @@ def render_and_upload_lastname_mug(event, context):
     return json.dumps({"amazon_ready_lastname": amazon_ready_lastname})
 
 
+@profile
 def process_lastnames(event, context):
+    print("Execution started")
+
     def clean_whitespace(string):
         string_split = string.split()
         return " ".join(string_split)
@@ -1007,3 +1013,53 @@ def process_lastnames(event, context):
     )
 
     return json.dumps(amazon_upload_file_url)
+
+
+if __name__ == "__main__":
+    # test_lastnames = [
+    #     {
+    #         "lastname": "Abcdefghijklmno",
+    #         "niche": "Aardvark",
+    #         "item_name": "Novelty Mugs For Aardvark Animal Lovers - Coffee Cup Ideas For Pet Owners",
+    #         "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
+    #     },
+    #     {
+    #         "lastname": "Jefferson",
+    #         "niche": "Abyssinian",
+    #         "item_name": "Novelty Mugs For Abyssinian Animal Lovers - Coffee Cup Ideas For Pet Owners",
+    #         "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
+    #     },
+    # ]
+    #
+    # event = {
+    #     "lastnames": test_lastnames,
+    #     "input_bucket": "giftsondemand-input",
+    #     "lastnames_csv_key": "input_csv/input.csv",
+    #     "output_bucket": "giftsondemand",
+    # }
+    # context = ""
+    # process_lastnames(event, context)
+
+    lastname_mock = {
+            "lastname": "Abcdefghijklmno",
+            "niche": "aaberg_lastname_feminine_surname_thing",
+            "item_name": "Novelty Mugs For Aardvark Animal Lovers - Coffee Cup Ideas For Pet Owners",
+            "keywords": "Birthday, Anniversary, Wedding, Graduation, Holiday, Coworkers, Boss, Friends",
+            "font": "",
+            "row": "2",
+            "name": "aaberg_lastname_feminine_surname_thing_2_20200419",
+    }
+    event = {
+        "lastname": lastname_mock,
+        "input_bucket": "giftsondemand-input",
+        "lastnames_csv_key": "input_csv/input.csv",
+        "output_bucket": "giftsondemand",
+    }
+    context = ""
+
+    @profile
+    def profile_render_and_upload():
+        for _ in range(1):
+            render_and_upload_lastname_mug(event, context)
+
+    profile_render_and_upload()
