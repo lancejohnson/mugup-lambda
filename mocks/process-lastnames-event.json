@@ -1,0 +1,5 @@
+{
+  "lastnames_csv_key": "input_csv/input.csv",
+  "input_bucket": "giftsondemand-input",
+  "output_bucket": "giftsondemand"
+}
