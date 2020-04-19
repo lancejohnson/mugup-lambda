@@ -24,7 +24,7 @@ functions:
 
   render-and-upload-lastname-mug:
     handler: handler.render_and_upload_lastname_mug
-    reservedConcurrency: 100 # right now concurrency does nothing. Also
+    reservedConcurrency: 100
 
 plugins:
   - serverless-python-requirements
