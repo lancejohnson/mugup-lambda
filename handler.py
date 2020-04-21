@@ -208,7 +208,7 @@ def render_and_upload_lastname_mug(event, context):
             "categories": [24],
             "weight": 13,
             "type": "physical",
-            "description": "Here's my description for the mug!",
+            "description": "<ul><li>High quality mug makes the perfect gift for everyone.</li><li>Printed on durable ceramic. The print will never fade no matter how many times it is washed.</li><li>Packaged, and shipped from the USA.</li><li>Dishwasher and Microwave safe.</li><li>Shipped in a custom made styrofoam package to ensure it arrives perfect. GUARANTEED.</ul>",
             "is_free_shipping": True,
             "warranty": "If you're unhappy with this product, just return it and we'll refund your money OR give you a replacement mug.  We'll pay the return shipping!",
             "meta_description": "Here's the meta description",
