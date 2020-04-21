@@ -58,8 +58,10 @@ provider:
 #            - "/*"
 
 # you can define service wide environment variables here
-#  environment:
-#    variable1: value1
+environment:
+  BIGCOMMERCE_STORE_HASH: ${env:BIGCOMMERCE_STORE_HASH}
+  BIGCOMMERCE_ACCESS_TOKEN: ${env:BIGCOMMERCE_ACCESS_TOKEN}
+  BIGCOMMERCE_CLIENT_ID: ${env:BIGCOMMERCE_CLIENT_ID}
 
 # you can add packaging information here
 #package:
