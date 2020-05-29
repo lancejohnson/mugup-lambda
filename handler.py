@@ -202,10 +202,14 @@ def render_and_upload_lastname_mug(event, context):
         return lastname_with_mug_urls
 
     def create_bigcommerce_product(lastname):
+        def check_first_char_is_vowel(lastname):
+            vowels = ["a", "e", "i", "o", "u"]
+            return lastname[0].lower() in vowels
+
         payload = {
-            "name": f"{lastname['lastname']} Ladies/Women Coffe Mug Gift - It's an {lastname['lastname']} Thing. You Wouldn't Understand Coffee Mug",
+            "name": f"{lastname['lastname']} Ladies/Women Coffee Mug Gift - It's a {lastname['lastname']} Thing. You Wouldn't Understand Coffee Mug",
             "price": "19.95",
-            "categories": [24],
+            "categories": [25],
             "weight": 13,
             "type": "physical",
             "description": "<ul><li>High quality mug makes the perfect gift for everyone.</li><li>Printed on durable ceramic. The print will never fade no matter how many times it is washed.</li><li>Packaged, and shipped from the USA.</li><li>Dishwasher and Microwave safe.</li><li>Shipped in a custom made styrofoam package to ensure it arrives perfect. GUARANTEED.</ul>",
@@ -240,6 +244,9 @@ def render_and_upload_lastname_mug(event, context):
                 },
             ],
         }
+
+        if check_first_char_is_vowel(lastname["lastname"]):
+            payload["name"] = f"{lastname['lastname']} Ladies/Women Coffe Mug Gift - It's an {lastname['lastname']} Thing. You Wouldn't Understand Coffee Mug"
 
         BIGCOMMERCE_STORE_HASH = os.environ.get("BIGCOMMERCE_STORE_HASH", "")
         PRODUCT_CREATION_URL = f"https://api.bigcommerce.com/stores/{BIGCOMMERCE_STORE_HASH}/v3/catalog/products"
@@ -318,6 +325,8 @@ def process_lastnames(event, context):
             InvocationType="Event",
             Payload=json.dumps(event_payload),
         )
+
+    return json.dumps({"message": "Successfully started!"})
 
 
 if __name__ == "__main__":
